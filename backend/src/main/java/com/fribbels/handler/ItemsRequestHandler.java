@@ -1,14 +1,12 @@
 package com.fribbels.handler;
 
+import com.fribbels.baili.BailiCalc;
 import com.fribbels.db.BaseStatsDb;
 import com.fribbels.db.HeroDb;
 import com.fribbels.db.ItemDb;
 import com.fribbels.enums.Gear;
 import com.fribbels.enums.HeroFilter;
-import com.fribbels.model.Hero;
-import com.fribbels.model.HeroStats;
-import com.fribbels.model.Item;
-import com.fribbels.model.MergeHero;
+import com.fribbels.model.*;
 import com.fribbels.request.EquipItemsOnHeroRequest;
 import com.fribbels.request.HeroesRequest;
 import com.fribbels.request.IdRequest;
@@ -547,9 +545,12 @@ public class ItemsRequestHandler extends RequestHandler implements HttpHandler {
         return "";
     }
 
+
+
     public String getAllItems() {
         final List<Item> items = itemDb.getAllItems();
         augmentItemData(items);
+        BailiCalc.calcBailiScore(items);
         final GetAllItemsResponse response = GetAllItemsResponse.builder()
                 .items(items)
                 .build();
