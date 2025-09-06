@@ -95,6 +95,14 @@ module.exports = {
                 {headerName: i18next.t('Def'), field: 'augmentedStats.Defense', cellRenderer: (params) => params.value == 0 ? "" : params.value},
                 {headerName: i18next.t('Eff'), field: 'augmentedStats.EffectivenessPercent', cellRenderer: (params) => params.value == 0 ? "" : params.value},
                 {headerName: i18next.t('Res'), field: 'augmentedStats.EffectResistancePercent', cellRenderer: (params) => params.value == 0 ? "" : params.value},
+                
+                {
+                    headerName: '百里',
+                    valueGetter: (params) => calcBailiScore(params.data),
+                    width: 200
+                
+                },
+
                 {headerName: i18next.t('Score'), field: 'reforgedWss', width: 50, cellStyle: scoreColumnGradient},
                 {headerName: i18next.t('dScore'), field: 'dpsWss', width: 50, cellStyle: scoreColumnGradient},
                 {headerName: i18next.t('sScore'), field: 'supportWss', width: 50, cellStyle: scoreColumnGradient},
@@ -130,6 +138,24 @@ module.exports = {
             getRowNodeId: (data) => {
                 return data.id;
             },
+
+            onRowDoubleClicked: (event) => {
+                const item = event.data;
+                if (!item) return;
+                    // 使用 replacer 参数，过滤掉无法序列化的属性
+                const itemJsonStr = JSON.stringify(item, (key, value) => {
+                    if (typeof value === 'object' && value !== null && value.toString() === '[object Object]') {
+                        return value; // 保留普通对象
+                    }
+                    if (typeof value === 'function') {
+                        return undefined; // 过滤掉函数
+                    }
+                    return value; // 保留其他值
+                }, 2);
+
+                alert("Double clicked item (JSON):\n" + calcBailiScore(item) + "\n" + itemJsonStr + "\n\n(Editing items is not supported yet)");
+
+            }
 
             // onRowSelected: onRowSelected,
         };
@@ -455,6 +481,38 @@ function renderActions(params) {
     return '<img class="optimizerSetIcon" id="item1" src=' + Assets.getSetAsset("SpeedSet") + '></img>';
 }
 
+function calcBailiScore(item) {
+    let speed = item.augmentedStats.Speed || 0;
+    let crit = item.augmentedStats.CriticalHitChancePercent || 0;
+    let cd = item.augmentedStats.CriticalHitDamagePercent || 0;
+    let eff = item.augmentedStats.EffectivenessPercent || 0;
+    let res = item.augmentedStats.EffectResistancePercent || 0;
+    let atkp = item.augmentedStats.AttackPercent || 0;
+    let hpp = item.augmentedStats.HealthPercent || 0;
+    let defp = item.augmentedStats.DefensePercent || 0;
+    let def = item.augmentedStats.Defense || 0;
+    let hp = item.augmentedStats.Health || 0;
+    let atk = item.augmentedStats.Attack || 0;
+    let score = item['reforgedWss'];
+
+    let gearName = item.gear;
+    let result = "|"
+    // check 一速
+    let firstSpeedScore = 0;
+    if (gearName !== "Boots") {
+        if (speed >=27 ) {
+            firstSpeedScore = 20 * speed - 2 * 245;
+        } else if (speed >= 25) {
+            firstSpeedScore = 10 * speed - 225;
+        } else if (speed >= 22) {
+            firstSpeedScore = 5 * speed - 5 * 21;
+        }
+    }
+    if (firstSpeedScore > 0) {
+        result += "一速" + firstSpeedScore.toFixed(0) + " ";
+    }
+    return result;
+}
 function columnGradient(params) {
     try {
         // if (!params || params.value == undefined) return;
