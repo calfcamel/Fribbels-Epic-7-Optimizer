@@ -21,11 +21,11 @@ public class BailiCalc {
             int speed = item.getReforgedStats().getSpeed();
             int firstSpeedScore = 0;
             if (item.getGear() != Gear.BOOTS && speed >= 22) {
-                if (speed >=27 ) {
+                if (speed >= 27) {
                     firstSpeedScore = 20 * speed - 2 * 245;
                 } else if (speed >= 25) {
                     firstSpeedScore = 10 * speed - 225;
-                } else if (speed >= 22) {
+                } else {
                     firstSpeedScore = 5 * speed - 5 * 21;
                 }
                 if (firstSpeedScore > 0) {

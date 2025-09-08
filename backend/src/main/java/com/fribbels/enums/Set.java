@@ -15,7 +15,7 @@ public enum Set {
     @SerializedName("CriticalSet")    CRIT        (4, 2, new int[]{0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, new int[]{4, 4}, "CriticalSet"),
     @SerializedName("HitSet")         HIT         (5, 2, new int[]{0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, new int[]{5, 5}, "HitSet"),
     @SerializedName("DestructionSet") DESTRUCTION (6, 4, new int[]{0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, new int[]{6, 6, 6, 6}, "DestructionSet"),
-    @SerializedName("LifestealSet")   LIFESTEAL   (7, 4, new int[]{0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, new int[]{7, 7, 7, 7}, "LifestealSet"),
+//    @SerializedName("LifestealSet")   LIFESTEAL   (7, 4, new int[]{0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, new int[]{7, 7, 7, 7}, "LifestealSet"),
     @SerializedName("CounterSet")     COUNTER     (8, 4, new int[]{0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, new int[]{8, 8, 8, 8}, "CounterSet"),
     @SerializedName("ResistSet")      RESIST      (9, 2, new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, new int[]{9, 9}, "ResistSet"),
     @SerializedName("UnitySet")       UNITY       (10, 2, new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0}, new int[]{10, 10}, "UnitySet"),
