@@ -70,6 +70,8 @@ public class Item {
 
     public float[] tempStatAccArr;
 
+    private BailiInfo baili;
+
     public String toString() {
         return new Gson().toJson(this);
     }
