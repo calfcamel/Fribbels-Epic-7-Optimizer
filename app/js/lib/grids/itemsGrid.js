@@ -481,7 +481,7 @@ function renderActions(params) {
     return '<img class="optimizerSetIcon" id="item1" src=' + Assets.getSetAsset("SpeedSet") + '></img>';
 }
 
-function calcBailiScore(item) {
+function calcBailiScore(item, isDetail=false) {
     let speed = item.augmentedStats.Speed || 0;
     let crit = item.augmentedStats.CriticalHitChancePercent || 0;
     let cd = item.augmentedStats.CriticalHitDamagePercent || 0;
@@ -496,7 +496,8 @@ function calcBailiScore(item) {
     let score = item['reforgedWss'];
 
     let gearName = item.gear;
-    let result = "|"
+    let result = ""
+    let resultScore = 0;
     // check 一速
     let firstSpeedScore = 0;
     if (gearName !== "Boots") {
@@ -510,7 +511,11 @@ function calcBailiScore(item) {
     }
     if (firstSpeedScore > 0) {
         result += "一速" + firstSpeedScore.toFixed(0) + " ";
+        resultScore += firstSpeedScore;
     }
+    // check tank
+    let tankScore = 0;
+    
     return result;
 }
 function columnGradient(params) {
