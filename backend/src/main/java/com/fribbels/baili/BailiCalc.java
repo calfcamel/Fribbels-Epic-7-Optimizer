@@ -8,6 +8,19 @@ import java.util.List;
 
 public class BailiCalc {
 
+    public static double calcGearScore(final Item item) {
+        double score = 0;
+        score += item.getReforgedStats().getSpeed() * 2;
+        score += item.getReforgedStats().getCritDamage() * 1.125;
+        score += item.getReforgedStats().getCritRate() * 1.5;
+        score += item.getReforgedStats().getAttackPercent();
+        score += item.getReforgedStats().getDefensePercent();
+        score += item.getReforgedStats().getHealthPercent();
+        score += item.getReforgedStats().getEffectiveness();
+        score += item.getReforgedStats().getEffectResistance();
+        return score;
+    }
+
     public static void calcBailiScore(final List<Item> items) {
         for (Item item : items) {
             if (item == null)
