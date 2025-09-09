@@ -68,8 +68,10 @@ public class BailiRule {
 
     public static List<BailiRule> rules;
 
+    public static final int GEAR_NOT_BOOTS = GEAR_ALL & ~GEAR_BOOTS;
+
     static {
         rules = new ArrayList<>();
-        rules.add(new BailiRule(ALL_STATS, GEAR_WEAPON | GEAR_HELMET | GEAR_ARMOR | GEAR_NECKLACE | GEAR_RING, 1 << Set.SPEED.getIndex(), SPEED, 0, 0));
+        rules.add(new BailiRule(ALL_STATS, GEAR_NOT_BOOTS, SPEED_SET, SPEED, 0, 0));
     }
 }
