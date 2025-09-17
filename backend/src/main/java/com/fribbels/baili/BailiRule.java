@@ -1,12 +1,15 @@
 package com.fribbels.baili;
 
 import com.fribbels.enums.Set;
+import com.fribbels.model.Item;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 @Getter
 @Setter
@@ -59,19 +62,52 @@ public class BailiRule {
 
     public static final int ALL = (1 << 30) - 1;
 
-    private int mainType;
-    private int gearType;
+    /**
+     * 套装
+     */
     private int setType;
-    private int subTypes;
-    private int offset;
-    private int factor;
+    /**
+     * 有效属性
+     */
+    private int validProps;
 
-    public static List<BailiRule> rules;
+    /**
+     * 部位
+     */
+    private int gearType;
+
+    /**
+     * 主属性
+     */
+    private int mainType;
+
+    BiFunction<Item, Double, Double> calcScoreFunc;
+
+    public static List<BailiRule> speedRules;
+    public static List<BailiRule> dpsRules;
+    public static List<BailiRule> tankRules;
 
     public static final int GEAR_NOT_BOOTS = GEAR_ALL & ~GEAR_BOOTS;
 
+    public static double ruleCalc(Item item, BailiRule rule) {
+
+    }
+
     static {
-        rules = new ArrayList<>();
-        rules.add(new BailiRule(ALL_STATS, GEAR_NOT_BOOTS, SPEED_SET, SPEED, 0, 0));
+        speedRules = new ArrayList<>();
+        speedRules.add(new BailiRule(SPEED_SET, SPEED, GEAR_ALL, ALL_STATS, (item, score) -> {
+            if (item.getReforgedStats().getSpeed() >= 18) {
+                if (score >= 78) {
+                    return 4 * (score - 72.75);
+                }
+                if(score >=73) {
+                    return 2 * (score - 66.5);
+                }
+                if (score >= 65) {
+                    return  score - 60;
+                }
+            }
+            return 0;
+        }));
     }
 }
