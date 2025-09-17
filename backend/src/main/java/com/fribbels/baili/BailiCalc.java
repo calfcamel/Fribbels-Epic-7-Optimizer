@@ -98,7 +98,32 @@ public class BailiCalc {
                     score += firstSpeedScore;
                     bailiInfo.setFirstSpeedScore(firstSpeedScore);
                 }
-
+            }
+            // 速度
+            for (BailiRule rule : BailiRule.speedRules) {
+                double speedScore = BailiRule.ruleCalc(item, rule);
+                if (speedScore > bailiInfo.getSpeedScore()) {
+                    bailiInfo.setSpeedScore(speedScore);
+                }
+            }
+            if (bailiInfo.getSpeedScore() > 0) {
+                if (sb.length() > 0) {
+                    sb.append(" ");
+                }
+                sb.append("速度").append(bailiInfo.getSpeedScore());
+            }
+            // 输出
+            for (BailiRule rule : BailiRule.dpsRules) {
+                double dpsScore = BailiRule.ruleCalc(item, rule);
+                if (dpsScore > bailiInfo.getDpsScore()) {
+                    bailiInfo.setDpsScore(dpsScore);
+                }
+            }
+            if (bailiInfo.getDpsScore() > 0) {
+                if (sb.length() > 0) {
+                    sb.append(" ");
+                }
+                sb.append("输出").append(bailiInfo.getDpsScore());
             }
             bailiInfo.setScore(score);
             bailiInfo.setDetails(sb.toString());
