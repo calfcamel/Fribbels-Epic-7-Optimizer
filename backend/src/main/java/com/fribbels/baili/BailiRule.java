@@ -9,7 +9,6 @@ import lombok.Setter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 @Getter
 @Setter
@@ -63,6 +62,8 @@ public class BailiRule {
 
     public static final int ALL = (1 << 30) - 1;
 
+
+    private int type;
     /**
      * 套装
      */
@@ -113,7 +114,7 @@ public class BailiRule {
         if (item.getMain().getType() == null) {
             return 0;
         }
-        return item.getMain() == null ? 0 : 1 << item.getMain().getType().getIndex();
+        return 1 << item.getMain().getType().getIndex();
     }
 
     public static double ruleCalc(Item item, BailiRule rule) {
@@ -126,6 +127,33 @@ public class BailiRule {
         }
         if ((rule.getGearType() & (GEAR_NECKLACE | GEAR_RING | GEAR_BOOTS)) > 0) {
             if ((rule.getMainType() & getMainType(item)) == 0) {
+                return 0d;
+            }
+        }
+        // 仅针对双效
+        if (rule.getType() == 4) {
+            // 主属性，套装，副属性 需要包含至少一条命中或抵抗
+            int flag = 0;
+            // 主属性
+            if ((getMainType(item) & (EFFECTIVENESS | EFFECT_RESISTANCE)) > 0) {
+                flag = 1;
+            }
+            // 套装
+            if (flag == 0 && (getSetType(item) & (HIT_SET | RESIST_SET)) > 0) {
+                flag = 1;
+            }
+            // 副属性
+            if (flag == 0 && (item.getReforgedStats().getEffectiveness() > 0 || item.getReforgedStats().getEffectResistance() > 0)) {
+                flag = 1;
+            }
+            // 不满足条件直接返回0
+            if (flag == 0) {
+                return 0d;
+            }
+
+            // 且攻击%不可与命中抵抗同时存在
+            // 先只检查副属性
+            if (item.getReforgedStats().getAttackPercent() > 0 && (item.getReforgedStats().getEffectiveness() > 0 || item.getReforgedStats().getEffectResistance() > 0)) {
                 return 0d;
             }
         }
@@ -179,7 +207,7 @@ public class BailiRule {
     // 有效属性
     // 速度，生命%，防御%，防御，抵抗，命中，攻击%
     //主属性，套装，副属性 需要包含至少一条命中或抵抗
-    // TODO: 且攻击%不可与命中抵抗同时存在
+    // 且攻击%不可与命中抵抗同时存在
     public static final int HIT_RESIST_VALID_PROPS = SPEED | HEALTH | HEALTH_PERCENT | DEFENSE | DEFENSE_PERCENT | EFFECTIVENESS | EFFECT_RESISTANCE | ATTACK_PERCENT;
 
     // 半肉（血防)
@@ -196,10 +224,19 @@ public class BailiRule {
     // 攻击%，暴率，爆伤，速度，生命%，防御%，防御
     public static final int HALF_TANK_VALID_PROPS = ATTACK_PERCENT | CRIT_RATE | CRIT_DAMAGE | SPEED | HEALTH_PERCENT | DEFENSE | DEFENSE_PERCENT;
 
+    public static final BiFunction<Item, Double, Double> HIT_RESIST_CALC_FUNC = (item, score) -> {
+        if (score >= 75) {
+            return 2 * (score - 73.5);
+        }
+        if (score >= 72) {
+            return 2. / 3 * (score - 70.5);
+        }
+        return 0d;
+    };
 
     static {
         speedRules = new ArrayList<>();
-        speedRules.add(new BailiRule(SPEED_SET, SPEED, GEAR_ALL & ~GEAR_BOOTS, ALL_STATS, (item, score) -> {
+        speedRules.add(new BailiRule(1, SPEED_SET, SPEED, GEAR_ALL & ~GEAR_BOOTS, ALL_STATS, (item, score) -> {
             if (item.getReforgedStats().getSpeed() >= 18) {
                 if (score >= 78) {
                     return 4 * (score - 72.75);
@@ -213,7 +250,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        speedRules.add(new BailiRule(CRIT_SET | HEALTH_SET | DEFENSE_SET | IMMUNITY_SET | PENETRATION_SET | TORRENT_SET | HIT_SET | RESIST_SET,
+        speedRules.add(new BailiRule(1, CRIT_SET | HEALTH_SET | DEFENSE_SET | IMMUNITY_SET | PENETRATION_SET | TORRENT_SET | HIT_SET | RESIST_SET,
             SPEED, GEAR_ALL & ~GEAR_BOOTS, ALL_STATS, (item, score) -> {
             if (item.getReforgedStats().getSpeed() >= 18) {
                 if (score >= 75) {
@@ -227,7 +264,7 @@ public class BailiRule {
         }));
 
         dpsRules = new ArrayList<>();
-        dpsRules.add(new BailiRule(DPS_SET, DPS_VALID_PROPS, GEAR_WEAPON | GEAR_HELMET, ALL_STATS, (item, score) -> {
+        dpsRules.add(new BailiRule(2, DPS_SET, DPS_VALID_PROPS, GEAR_WEAPON | GEAR_HELMET, ALL_STATS, (item, score) -> {
             if (score >= 79) {
                 return 3 * score - 220;
             }
@@ -239,7 +276,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        dpsRules.add(new BailiRule(DPS_SET, DPS_VALID_PROPS, GEAR_ARMOR, ALL_STATS, (item, score) -> {
+        dpsRules.add(new BailiRule(2, DPS_SET, DPS_VALID_PROPS, GEAR_ARMOR, ALL_STATS, (item, score) -> {
             if (score >= 72) {
                 return 3 * score - 220;
             }
@@ -251,7 +288,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        dpsRules.add(new BailiRule(DPS_SET, DPS_VALID_PROPS, GEAR_NECKLACE, CRIT_RATE | CRIT_DAMAGE, (item, score) -> {
+        dpsRules.add(new BailiRule(2, DPS_SET, DPS_VALID_PROPS, GEAR_NECKLACE, CRIT_RATE | CRIT_DAMAGE, (item, score) -> {
             if (score >= 73) {
                 return 4 * score - 272.3;
             }
@@ -263,7 +300,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        dpsRules.add(new BailiRule(DPS_SET, DPS_VALID_PROPS, GEAR_RING, ATTACK_PERCENT, (item, score) -> {
+        dpsRules.add(new BailiRule(2, DPS_SET, DPS_VALID_PROPS, GEAR_RING, ATTACK_PERCENT, (item, score) -> {
             if (score >= 73) {
                 return 4 * score - 272.3;
             }
@@ -275,7 +312,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        dpsRules.add(new BailiRule(DPS_SET, DPS_VALID_PROPS, GEAR_BOOTS, SPEED | ATTACK_PERCENT, (item, score) -> {
+        dpsRules.add(new BailiRule(2, DPS_SET, DPS_VALID_PROPS, GEAR_BOOTS, SPEED | ATTACK_PERCENT, (item, score) -> {
             if (score >= 73) {
                 return 4 * score - 272.3;
             }
@@ -290,7 +327,7 @@ public class BailiRule {
 
         tankRules = new ArrayList<>();
         // 抗坦（坦克）
-        tankRules.add(new BailiRule(TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_WEAPON, ALL_STATS, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_WEAPON, ALL_STATS, (item, score) -> {
             if (score >= 73) {
                 return 3 * score - 201;
             }
@@ -302,7 +339,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        tankRules.add(new BailiRule(TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
             if (score >= 79) {
                 return 3 * score - 220;
             }
@@ -314,7 +351,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        tankRules.add(new BailiRule(TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_NECKLACE, HEALTH_PERCENT | DEFENSE_PERCENT, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_NECKLACE, HEALTH_PERCENT | DEFENSE_PERCENT, (item, score) -> {
             if (score >= 73) {
                 return 4 * score - 272.3;
             }
@@ -326,7 +363,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        tankRules.add(new BailiRule(TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT | EFFECT_RESISTANCE, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT | EFFECT_RESISTANCE, (item, score) -> {
             if (score >= 73) {
                 return 4 * score - 272.3;
             }
@@ -338,7 +375,7 @@ public class BailiRule {
             }
             return 0d;
         }));
-        tankRules.add(new BailiRule(TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_BOOTS, HEALTH_PERCENT | DEFENSE_PERCENT | SPEED, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_RESIST_SET, TANK_RESIST_VALID_PROPS, GEAR_BOOTS, HEALTH_PERCENT | DEFENSE_PERCENT | SPEED, (item, score) -> {
             if (score >= 73) {
                 return 4 * score - 272.3;
             }
@@ -353,7 +390,7 @@ public class BailiRule {
         // 纯肉（坦克）
         // 头盔				62-68	4/3*（装等-60.5）	68-72	2*（装等-63）	72+	3.5*装等-234
         // 衣服				62-68	4/3*（装等-60.5）	68-72	2*（装等-63）	72+	3.5*装等-234
-        tankRules.add(new BailiRule(TANK_SET, TANK_VALID_PROPS, GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_SET, TANK_VALID_PROPS, GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
             if (score >= 72) {
                 return 3.5 * score - 234;
             }
@@ -366,7 +403,7 @@ public class BailiRule {
             return 0d;
         }));
         // 项链	生命%			58-64	1.5*（装等-56）	64-68	3*（装等-60）	68+	5*（装等-63.2）
-        tankRules.add(new BailiRule(TANK_SET, TANK_VALID_PROPS, GEAR_NECKLACE, HEALTH_PERCENT, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_SET, TANK_VALID_PROPS, GEAR_NECKLACE, HEALTH_PERCENT, (item, score) -> {
             if (score >= 68) {
                 return 5 * (score - 63.2);
             }
@@ -379,7 +416,7 @@ public class BailiRule {
             return 0d;
         }));
         // 戒指	生命%			58-64	1.5*（装等-56）	64-68	3*（装等-60）	68+	5*（装等-63.2）
-        tankRules.add(new BailiRule(TANK_SET, TANK_VALID_PROPS, GEAR_RING, HEALTH_PERCENT, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_SET, TANK_VALID_PROPS, GEAR_RING, HEALTH_PERCENT, (item, score) -> {
             if (score >= 68) {
                 return 5 * (score - 63.2);
             }
@@ -392,7 +429,7 @@ public class BailiRule {
             return 0d;
         }));
         // 鞋子	生命%，速度			58-64	1.5*（装等-56）	64-68	3*（装等-60）	68+	5*（装等-63.2）
-        tankRules.add(new BailiRule(TANK_SET, TANK_VALID_PROPS, GEAR_BOOTS, HEALTH_PERCENT | SPEED, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_SET, TANK_VALID_PROPS, GEAR_BOOTS, HEALTH_PERCENT | SPEED, (item, score) -> {
             if (score >= 68) {
                 return 5 * (score - 63.2);
             }
@@ -406,7 +443,7 @@ public class BailiRule {
         }));
         // 命坦（双效）
         // 武器	-	#VALUE!	0	62-68	4/3*（装等-60.5）	68-72	2*（装等-63）	72+	3.5*装等-234
-        tankRules.add(new BailiRule(TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_WEAPON, ALL_STATS, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_WEAPON, ALL_STATS, (item, score) -> {
             if (score >= 72) {
                 return 3.5 * score - 234;
             }
@@ -420,7 +457,7 @@ public class BailiRule {
         }));
         // 头盔	-	#VALUE!	0	68-74	4/3*（装等-67.25）	74-78	2*（装等-69.5）	78+	3.5*装等-256
         // 衣服	-	#VALUE!	0	68-74	4/3*（装等-67.25）	74-78	2*（装等-69.5）	78+	3.5*装等-256
-        tankRules.add(new BailiRule(TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
             if (score >= 78) {
                 return 3.5 * score - 256;
             }
@@ -433,7 +470,7 @@ public class BailiRule {
             return 0d;
         }));
         // 项链	生命%，防御%	#VALUE!	0	63-68	4/3*（装等-62）	68-74	7/3*（装等-64.5）	74+	4*装等-274
-        tankRules.add(new BailiRule(TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_NECKLACE, HEALTH_PERCENT | DEFENSE_PERCENT, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_NECKLACE, HEALTH_PERCENT | DEFENSE_PERCENT, (item, score) -> {
             if (score >= 74) {
                 return 4 * score - 274;
             }
@@ -446,7 +483,7 @@ public class BailiRule {
             return 0d;
         }));
         // 戒指	生命%，防御%，命中	#VALUE!	0	63-68	4/3*（装等-62）	68-74	7/3*（装等-64.5）	74+	4*装等-274
-        tankRules.add(new BailiRule(TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT | EFFECTIVENESS, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT | EFFECTIVENESS, (item, score) -> {
             if (score >= 74) {
                 return 4 * score - 274;
             }
@@ -459,7 +496,7 @@ public class BailiRule {
             return 0d;
         }));
         // 鞋子	速度	#VALUE!	0	63-68	装等-62	68-74	7/3*（装等-64.5）	74+	4*装等-274
-        tankRules.add(new BailiRule(TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_BOOTS, SPEED, (item, score) -> {
+        tankRules.add(new BailiRule(3, TANK_HIT_SET, TANK_HIT_VALID_PROPS, GEAR_BOOTS, SPEED, (item, score) -> {
             if (score >= 74) {
                 return 4 * score - 274;
             }
@@ -473,14 +510,25 @@ public class BailiRule {
         }));
 
         // 双效
-        // 搞不明白先跳过
+        // TODO: 搞不明白先跳过
+        hitResistRules = new ArrayList<>();
+        // 武器	-	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
+        // 头盔	-	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
+        // 衣服	-	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
+        hitResistRules.add(new BailiRule(4, HIT_RESIST_SET, HIT_RESIST_VALID_PROPS, GEAR_WEAPON | GEAR_HELMET | GEAR_ARMOR, ALL_STATS, HIT_RESIST_CALC_FUNC));
+        // 项链	生命%，防御%，攻击%	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
+        // 戒指	生命%，防御%，攻击%，抵抗，命中	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
+        hitResistRules.add(new BailiRule(4, HIT_RESIST_SET, HIT_RESIST_VALID_PROPS, GEAR_NECKLACE | GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT | ATTACK_PERCENT | EFFECTIVENESS | EFFECT_RESISTANCE, HIT_RESIST_CALC_FUNC));
+        // 鞋子	速度	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
+        hitResistRules.add(new BailiRule(4, HIT_RESIST_SET, HIT_RESIST_VALID_PROPS, GEAR_BOOTS, SPEED, HIT_RESIST_CALC_FUNC));
+
 
         tankHalfRules = new ArrayList<>();
         // 半肉（血防)
         // 武器	-	#VALUE!	0	71-74	2/3*（装等-69.5）	74-78	2*（装等-72.5）	78+	3.5*装等-262
         // 头盔	-	#VALUE!	0	71-74	2/3*（装等-69.5）	74-78	2*（装等-72.5）	78+	3.5*装等-262
         // 衣服	-	#VALUE!	0	71-74	2/3*（装等-69.5）	74-78	2*（装等-72.5）	78+	3.5*装等-262
-        tankHalfRules.add(new BailiRule(HALF_TANK_HP_DEF_SET, HALF_TANK_HP_DEF_VALID_PROPS, GEAR_WEAPON | GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
+        tankHalfRules.add(new BailiRule(5, HALF_TANK_HP_DEF_SET, HALF_TANK_HP_DEF_VALID_PROPS, GEAR_WEAPON | GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
             if (score >= 78) {
                 return 3.5 * score - 262;
             }
@@ -493,7 +541,7 @@ public class BailiRule {
             return 0d;
         }));
         // 项链	爆率，爆伤	#VALUE!	0	69-74	4/5*（装等-66.5）	74-78	2*（装等-71）	78+	4*（装等-74.5）
-        tankHalfRules.add(new BailiRule(HALF_TANK_HP_DEF_SET, HALF_TANK_HP_DEF_VALID_PROPS, GEAR_NECKLACE, CRIT_RATE | CRIT_DAMAGE, (item, score) -> {
+        tankHalfRules.add(new BailiRule(5, HALF_TANK_HP_DEF_SET, HALF_TANK_HP_DEF_VALID_PROPS, GEAR_NECKLACE, CRIT_RATE | CRIT_DAMAGE, (item, score) -> {
             if (score >= 78) {
                 return 4 * (score - 74.5);
             }
@@ -506,7 +554,7 @@ public class BailiRule {
             return 0d;
         }));
         // 戒指	生命%，防御%	#VALUE!	0	69-74	4/5*（装等-66.5）	74-78	2*（装等-71）	78+	4*（装等-74.5）
-        tankHalfRules.add(new BailiRule(HALF_TANK_HP_DEF_SET, HALF_TANK_HP_DEF_VALID_PROPS, GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT, (item, score) -> {
+        tankHalfRules.add(new BailiRule(5, HALF_TANK_HP_DEF_SET, HALF_TANK_HP_DEF_VALID_PROPS, GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT, (item, score) -> {
             if (score >= 78) {
                 return 4 * (score - 74.5);
             }
@@ -519,7 +567,7 @@ public class BailiRule {
             return 0d;
         }));
         // 鞋子	速度	#VALUE!	0	69-74	4/5*（装等-66.5）	74-78	2*（装等-71）	78+	4*（装等-74.5）
-        tankHalfRules.add(new BailiRule(HALF_TANK_HP_DEF_SET, HALF_TANK_HP_DEF_VALID_PROPS, GEAR_BOOTS, SPEED, (item, score) -> {
+        tankHalfRules.add(new BailiRule(5, HALF_TANK_HP_DEF_SET, HALF_TANK_HP_DEF_VALID_PROPS, GEAR_BOOTS, SPEED, (item, score) -> {
             if (score >= 78) {
                 return 4 * (score - 74.5);
             }
@@ -536,7 +584,7 @@ public class BailiRule {
         // 武器	-	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
         //头盔	-	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
         //衣服	-	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
-        tankHalfRules.add(new BailiRule(HALF_TANK_SET, HALF_TANK_VALID_PROPS, GEAR_WEAPON | GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
+        tankHalfRules.add(new BailiRule(5, HALF_TANK_SET, HALF_TANK_VALID_PROPS, GEAR_WEAPON | GEAR_HELMET | GEAR_ARMOR, ALL_STATS, (item, score) -> {
             if (score >= 75) {
                 return 2 * (score - 73.5);
             }
@@ -546,7 +594,7 @@ public class BailiRule {
             return 0d;
         }));
         //项链	爆率，爆伤，生命%，攻击%	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
-        tankHalfRules.add(new BailiRule(HALF_TANK_SET, HALF_TANK_VALID_PROPS, GEAR_NECKLACE, CRIT_RATE | CRIT_DAMAGE | HEALTH_PERCENT | ATTACK_PERCENT, (item, score) -> {
+        tankHalfRules.add(new BailiRule(5, HALF_TANK_SET, HALF_TANK_VALID_PROPS, GEAR_NECKLACE, CRIT_RATE | CRIT_DAMAGE | HEALTH_PERCENT | ATTACK_PERCENT, (item, score) -> {
             if (score >= 75) {
                 return 2 * (score - 73.5);
             }
@@ -556,7 +604,7 @@ public class BailiRule {
             return 0d;
         }));
         //戒指	生命%，防御%，攻击%	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
-        tankHalfRules.add(new BailiRule(HALF_TANK_SET, HALF_TANK_VALID_PROPS, GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT | ATTACK_PERCENT, (item, score) -> {
+        tankHalfRules.add(new BailiRule(5, HALF_TANK_SET, HALF_TANK_VALID_PROPS, GEAR_RING, HEALTH_PERCENT | DEFENSE_PERCENT | ATTACK_PERCENT, (item, score) -> {
             if (score >= 75) {
                 return 2 * (score - 73.5);
             }
@@ -566,7 +614,7 @@ public class BailiRule {
             return 0d;
         }));
         //鞋子	速度	#VALUE!	0	72-75	2/3*（装等-70.5）	75+	2*（装等-73.5）
-        tankHalfRules.add(new BailiRule(HALF_TANK_SET, HALF_TANK_VALID_PROPS, GEAR_BOOTS, SPEED, (item, score) -> {
+        tankHalfRules.add(new BailiRule(5, HALF_TANK_SET, HALF_TANK_VALID_PROPS, GEAR_BOOTS, SPEED, (item, score) -> {
             if (score >= 75) {
                 return 2 * (score - 73.5);
             }
