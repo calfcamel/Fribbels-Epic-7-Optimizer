@@ -15,7 +15,6 @@ import java.util.List;
 @Setter
 @Wither
 @AllArgsConstructor
-@NoArgsConstructor
 @EqualsAndHashCode
 public class Item {
 

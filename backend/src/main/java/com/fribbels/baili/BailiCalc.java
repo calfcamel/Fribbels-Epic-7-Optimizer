@@ -122,6 +122,8 @@ public class BailiCalc {
                     sb.append("速度").append(bailiInfo.getSpeedScore());
                 }
                 final int scoreCache = score;
+                int maxScore = 0;
+                int maxType = 0;
                 // 输出
                 for (final BailiRule rule : BailiRule.dpsRules) {
                     final double dpsScore = BailiRule.ruleCalc(item, rule);
@@ -130,11 +132,15 @@ public class BailiCalc {
                     }
                 }
                 if (bailiInfo.getDpsScore() > 0) {
-                    if (sb.length() > 0) {
-                        sb.append(" ");
+                    if (bailiInfo.getDpsScore() > maxScore) {
+                        maxScore = bailiInfo.getDpsScore();
+                        maxType = 1;
                     }
-                    score += bailiInfo.getDpsScore();
-                    sb.append("输出").append(bailiInfo.getDpsScore());
+//                    if (sb.length() > 0) {
+//                        sb.append(" ");
+//                    }
+//                    score += bailiInfo.getDpsScore();
+//                    sb.append("输出").append(bailiInfo.getDpsScore());
                 }
 
                 // 坦克
@@ -146,11 +152,15 @@ public class BailiCalc {
                         }
                     }
                     if (bailiInfo.getTankScore() > 0) {
-                        if (sb.length() > 0) {
-                            sb.append(" ");
+                        if (bailiInfo.getTankScore() > maxScore) {
+                            maxScore = bailiInfo.getTankScore();
+                            maxType = 2;
                         }
-                        score += bailiInfo.getTankScore();
-                        sb.append("坦克").append(bailiInfo.getTankScore());
+//                        if (sb.length() > 0) {
+//                            sb.append(" ");
+//                        }
+//                        score += bailiInfo.getTankScore();
+//                        sb.append("坦克").append(bailiInfo.getTankScore());
                     }
 //                }
 
@@ -163,11 +173,15 @@ public class BailiCalc {
                         }
                     }
                     if (bailiInfo.getHitResistScore() > 0) {
-                        if (sb.length() > 0) {
-                            sb.append(" ");
+                        if (bailiInfo.getHitResistScore() > maxScore) {
+                            maxScore = bailiInfo.getHitResistScore();
+                            maxType = 3;
                         }
-                        score += bailiInfo.getHitResistScore();
-                        sb.append("双效").append(bailiInfo.getHitResistScore());
+//                        if (sb.length() > 0) {
+//                            sb.append(" ");
+//                        }
+//                        score += bailiInfo.getHitResistScore();
+//                        sb.append("双效").append(bailiInfo.getHitResistScore());
                     }
 //                }
 
@@ -180,13 +194,40 @@ public class BailiCalc {
                         }
                     }
                     if (bailiInfo.getTankHalfScore() > 0) {
-                        if (sb.length() > 0) {
-                            sb.append(" ");
+                        if (bailiInfo.getTankHalfScore() > maxScore) {
+                            maxScore = bailiInfo.getTankHalfScore();
+                            maxType = 4;
                         }
-                        score += bailiInfo.getTankHalfScore();
-                        sb.append("半肉").append(bailiInfo.getTankHalfScore());
+//                        if (sb.length() > 0) {
+//                            sb.append(" ");
+//                        }
+//                        score += bailiInfo.getTankHalfScore();
+//                        sb.append("半肉").append(bailiInfo.getTankHalfScore());
                     }
 //                }
+
+                if (maxType > 0) {
+                    score += maxScore;
+                    if (sb.length() > 0) {
+                        sb.append(" ");
+                    }
+                    switch (maxType) {
+                        case 1:
+                            sb.append("输出").append(maxScore);
+                            break;
+                        case 2:
+                            sb.append("坦克").append(maxScore);
+                            break;
+                        case 3:
+                            sb.append("双效").append(maxScore);
+                            break;
+                        case 4:
+                            sb.append("半肉").append(maxScore);
+                            break;
+                        default:
+                            break;
+                    }
+                }
 
                 // 未来可期
                 // 75+	2/3*（装等-73.5）
@@ -195,6 +236,9 @@ public class BailiCalc {
                     final int futureScore = (int) Math.round(2.0 / 3 * (bailiInfo.getGearScore() - 73.5));
                     score += futureScore;
                     bailiInfo.setFutureScore(futureScore);
+                    if (sb.length() > 0) {
+                        sb.append(" ");
+                    }
                     sb.append("未来可期").append(futureScore);
                 }
 
