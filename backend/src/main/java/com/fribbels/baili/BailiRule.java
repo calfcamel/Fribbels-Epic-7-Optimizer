@@ -153,7 +153,7 @@ public class BailiRule {
 
             // 且攻击%不可与命中抵抗同时存在
             // 先只检查副属性
-            if (item.getReforgedStats().getAttackPercent() > 0 && (item.getReforgedStats().getEffectiveness() > 0 || item.getReforgedStats().getEffectResistance() > 0)) {
+            if (item.getReforgedStats().getAttackPercent() > 0 && item.getReforgedStats().getEffectiveness() > 0 && item.getReforgedStats().getEffectResistance() > 0) {
                 return 0d;
             }
         }
