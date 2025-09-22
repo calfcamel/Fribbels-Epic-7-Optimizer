@@ -54,9 +54,10 @@ public class RequestHandler {
 
     protected void sendResponse(final HttpExchange exchange, final String response) throws IOException {
         final OutputStream outputStream = exchange.getResponseBody();
-        exchange.sendResponseHeaders(200, response.getBytes().length);
-        exchange.getResponseHeaders().put("Content-Type", ImmutableList.of("application/json"));
-        outputStream.write(response.getBytes());
+        exchange.getResponseHeaders().put("Content-Type", ImmutableList.of("application/json; charset=utf-8"));
+        byte[] bytes = response.getBytes(StandardCharsets.UTF_8); // 强制用UTF-8编码
+        exchange.sendResponseHeaders(200, bytes.length);
+        outputStream.write(bytes);
         outputStream.flush();
         outputStream.close();
 

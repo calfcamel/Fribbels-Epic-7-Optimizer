@@ -5,11 +5,7 @@ import com.fribbels.enums.Material;
 import com.fribbels.enums.Rank;
 import com.fribbels.enums.Set;
 import com.google.gson.Gson;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.Wither;
 
 import java.util.List;
@@ -19,6 +15,7 @@ import java.util.List;
 @Setter
 @Wither
 @AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode
 public class Item {
 
@@ -53,7 +50,7 @@ public class Item {
 
     private boolean locked;
     private boolean disableMods;
-//    private boolean alreadyPredictedReforge;
+    //    private boolean alreadyPredictedReforge;
     public int reforgeable;
     public int upgradeable;
     public int convertable;
@@ -69,8 +66,6 @@ public class Item {
     private String allowedMods;
 
     public float[] tempStatAccArr;
-
-    private BailiInfo baili;
 
     public String toString() {
         return new Gson().toJson(this);

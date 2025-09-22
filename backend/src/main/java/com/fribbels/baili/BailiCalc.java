@@ -3,7 +3,9 @@ package com.fribbels.baili;
 import com.fribbels.enums.Gear;
 import com.fribbels.model.BailiInfo;
 import com.fribbels.model.Item;
+import com.google.gson.Gson;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class BailiCalc {
@@ -73,61 +75,89 @@ public class BailiCalc {
 
     }
 
-    public static void calcBailiScore(final List<Item> items) {
+    public static List<BailiInfo> calcBailiScore(final List<Item> items) {
+        List<BailiInfo> bailiInfos = new ArrayList<>();
         for (Item item : items) {
-            if (item == null)
-                continue;
-            if (item.getReforgedStats() == null) {
-                continue;
-            }
-            StringBuilder sb = new StringBuilder();
             BailiInfo bailiInfo = new BailiInfo();
-            int score = 0;
-            int speed = item.getReforgedStats().getSpeed();
-            int firstSpeedScore = 0;
-            if (item.getGear() != Gear.BOOTS && speed >= 22) {
-                if (speed >= 27) {
-                    firstSpeedScore = 20 * speed - 2 * 245;
-                } else if (speed >= 25) {
-                    firstSpeedScore = 10 * speed - 225;
-                } else {
-                    firstSpeedScore = 5 * speed - 5 * 21;
+            bailiInfos.add(bailiInfo);
+            try {
+                if (item == null) {
+                    continue;
                 }
-                if (firstSpeedScore > 0) {
-                    sb.append("一速").append(firstSpeedScore);
-                    score += firstSpeedScore;
-                    bailiInfo.setFirstSpeedScore(firstSpeedScore);
+                if (item.getReforgedStats() == null) {
+                    continue;
                 }
+                StringBuilder sb = new StringBuilder();
+                int score = 0;
+                int speed = item.getReforgedStats().getSpeed();
+                int firstSpeedScore = 0;
+                if (item.getGear() != Gear.BOOTS && speed >= 22) {
+                    if (speed >= 27) {
+                        firstSpeedScore = 20 * speed - 2 * 245;
+                    } else if (speed >= 25) {
+                        firstSpeedScore = 10 * speed - 225;
+                    } else {
+                        firstSpeedScore = 5 * speed - 5 * 21;
+                    }
+                    if (firstSpeedScore > 0) {
+                        sb.append("一速").append(firstSpeedScore);
+                        score += firstSpeedScore;
+                        bailiInfo.setFirstSpeedScore(firstSpeedScore);
+                    }
+                }
+                // 速度
+                for (BailiRule rule : BailiRule.speedRules) {
+                    double speedScore = BailiRule.ruleCalc(item, rule);
+                    if (speedScore > bailiInfo.getSpeedScore()) {
+                        // 四舍五入
+                        bailiInfo.setSpeedScore((int) Math.round(speedScore));
+                    }
+                }
+                if (bailiInfo.getSpeedScore() > 0) {
+                    if (sb.length() > 0) {
+                        sb.append(" ");
+                    }
+                    score += bailiInfo.getSpeedScore();
+                    sb.append("速度").append(bailiInfo.getSpeedScore());
+                }
+                // 输出
+                for (BailiRule rule : BailiRule.dpsRules) {
+                    double dpsScore = BailiRule.ruleCalc(item, rule);
+                    if (dpsScore > bailiInfo.getDpsScore()) {
+                        bailiInfo.setDpsScore((int) Math.round(dpsScore));
+                    }
+                }
+                if (bailiInfo.getDpsScore() > 0) {
+                    if (sb.length() > 0) {
+                        sb.append(" ");
+                    }
+                    score += bailiInfo.getDpsScore();
+                    sb.append("输出").append(bailiInfo.getDpsScore());
+                }
+
+                // 未来可期
+                // 75+	2/3*（装等-73.5）
+                bailiInfo.setGearScore(calcGearScore(item));
+                if (sb.length() == 0 && bailiInfo.getGearScore() > 75) {
+                    sb.append("未来可期");
+                    score += (int) Math.round((bailiInfo.getGearScore() - 73.5) * 2 / 3);
+                }
+
+                bailiInfo.setScore(score);
+                bailiInfo.setDetails(sb.toString());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            // 速度
-            for (BailiRule rule : BailiRule.speedRules) {
-                double speedScore = BailiRule.ruleCalc(item, rule);
-                if (speedScore > bailiInfo.getSpeedScore()) {
-                    bailiInfo.setSpeedScore(speedScore);
-                }
-            }
-            if (bailiInfo.getSpeedScore() > 0) {
-                if (sb.length() > 0) {
-                    sb.append(" ");
-                }
-                sb.append("速度").append(bailiInfo.getSpeedScore());
-            }
-            // 输出
-            for (BailiRule rule : BailiRule.dpsRules) {
-                double dpsScore = BailiRule.ruleCalc(item, rule);
-                if (dpsScore > bailiInfo.getDpsScore()) {
-                    bailiInfo.setDpsScore(dpsScore);
-                }
-            }
-            if (bailiInfo.getDpsScore() > 0) {
-                if (sb.length() > 0) {
-                    sb.append(" ");
-                }
-                sb.append("输出").append(bailiInfo.getDpsScore());
-            }
-            bailiInfo.setScore(score);
-            bailiInfo.setDetails(sb.toString());
-            item.setBaili(bailiInfo);
         }
+        return bailiInfos;
+    }
+
+    public static void main(String[] args) {
+        String s = "{\n    \"gear\": \"Weapon\",\n    \"rank\": \"Epic\",\n    \"set\": \"CriticalSet\",\n    \"enhance\": 15,\n    \"level\": 90,\n    \"main\": {\n        \"type\": \"Attack\",\n        \"value\": 525,\n        \"reforgedValue\": 525\n    },\n    \"substats\": [\n        {\n            \"type\": \"Speed\",\n            \"value\": 18,\n            \"rolls\": 4,\n            \"max\": 9,\n            \"min\": 5,\n            \"multi\": 3,\n            \"scaledDiff\": 0,\n            \"reforgedValue\": 18,\n            \"unreforgedValue\": 15,\n            \"unreforgedMin\": 4,\n            \"unreforgedMax\": 16\n        },\n        {\n            \"type\": \"AttackPercent\",\n            \"value\": 15,\n            \"rolls\": 2,\n            \"max\": 3,\n            \"min\": 2,\n            \"multi\": 6,\n            \"scaledDiff\": 0,\n            \"reforgedValue\": 15,\n            \"unreforgedValue\": 12,\n            \"unreforgedMin\": 8,\n            \"unreforgedMax\": 16\n        },\n        {\n            \"type\": \"CriticalHitDamagePercent\",\n            \"value\": 16,\n            \"rolls\": 2,\n            \"max\": 4,\n            \"min\": 3,\n            \"multi\": 5.5,\n            \"scaledDiff\": 0,\n            \"reforgedValue\": 16,\n            \"unreforgedValue\": 14,\n            \"unreforgedMin\": 8,\n            \"unreforgedMax\": 14\n        },\n        {\n            \"type\": \"CriticalHitChancePercent\",\n            \"value\": 6,\n            \"rolls\": 1,\n            \"max\": 2,\n            \"min\": 2,\n            \"multi\": 4,\n            \"scaledDiff\": 0,\n            \"reforgedValue\": 6,\n            \"unreforgedValue\": 5,\n            \"unreforgedMin\": 3,\n            \"unreforgedMax\": 5\n        }\n    ],\n    \"op\": [\n        [\n            \"att\",\n            \"105\",\n            null,\n            null,\n            \"1\"\n        ],\n        [\n            \"speed\",\n            \"4\"\n        ],\n        [\n            \"att_rate\",\n            \"0.08\"\n        ],\n        [\n            \"cri_dmg\",\n            \"0.07\"\n        ],\n        [\n            \"cri\",\n            \"0.05\"\n        ],\n        [\n            \"speed\",\n            \"4\"\n        ],\n        [\n            \"speed\",\n            \"4\"\n        ],\n        [\n            \"att_rate\",\n            \"0.04\"\n        ],\n        [\n            \"speed\",\n            \"3\"\n        ],\n        [\n            \"cri_dmg\",\n            \"0.07\"\n        ],\n        [\n            \"speed\",\n            \"3\",\n            \"u\"\n        ],\n        [\n            \"att_rate\",\n            \"0.03\",\n            \"u\"\n        ],\n        [\n            \"cri_dmg\",\n            \"0.02\",\n            \"u\"\n        ],\n        [\n            \"cri\",\n            \"0.01\",\n            \"u\"\n        ]\n    ],\n    \"name\": \"Unknown\",\n    \"augmentedStats\": {\n        \"AttackPercent\": 15,\n        \"HealthPercent\": 0,\n        \"DefensePercent\": 0,\n        \"Attack\": 0,\n        \"Health\": 0,\n        \"Defense\": 0,\n        \"Speed\": 18,\n        \"CriticalHitChancePercent\": 6,\n        \"CriticalHitDamagePercent\": 16,\n        \"EffectivenessPercent\": 0,\n        \"EffectResistancePercent\": 0,\n        \"mainType\": \"Attack\",\n        \"mainValue\": 525\n    },\n    \"reforgedStats\": {\n        \"AttackPercent\": 15,\n        \"HealthPercent\": 0,\n        \"DefensePercent\": 0,\n        \"Attack\": 0,\n        \"Health\": 0,\n        \"Defense\": 0,\n        \"Speed\": 18,\n        \"CriticalHitChancePercent\": 6,\n        \"CriticalHitDamagePercent\": 16,\n        \"EffectivenessPercent\": 0,\n        \"EffectResistancePercent\": 0,\n        \"mainType\": \"Attack\",\n        \"mainValue\": 525\n    },\n    \"id\": \"2261863295\",\n    \"ingameId\": \"2261863295\",\n    \"ingameEquippedId\": \"771423154\",\n    \"equippedById\": \"95f2d51e-e010-4afe-ab32-d436f477fdcc\",\n    \"equippedByName\": \"Vildred\",\n    \"locked\": false,\n    \"disableMods\": false,\n    \"reforgeable\": 0,\n    \"upgradeable\": 0,\n    \"convertable\": 0,\n    \"alreadyEquipped\": 0,\n    \"priority\": 0,\n    \"wss\": 79,\n    \"reforgedWss\": 79,\n    \"dpsWss\": 79,\n    \"supportWss\": 36,\n    \"combatWss\": 79,\n    \"duplicateId\": \"\",\n    \"allowedMods\": \"|Health|HealthPercent|EffectivenessPercent|EffectResistancePercent|\",\n    \"material\": \"Unknown\"\n}";
+        Item item = new Gson().fromJson(s, Item.class);
+        List<Item> itemList = new ArrayList<>();
+        itemList.add(item);
+        BailiInfo bailiInfo = calcBailiScore(itemList).get(0);
+        System.out.println(bailiInfo);
     }
 }

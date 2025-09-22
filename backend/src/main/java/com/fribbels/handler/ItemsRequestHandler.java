@@ -16,7 +16,7 @@ import com.fribbels.request.MergeRequest;
 import com.fribbels.response.GetAllItemsResponse;
 import com.fribbels.response.GetItemByIdResponse;
 import com.google.common.collect.ImmutableList;
-import com.google.gson.Gson;
+import com.google.gson.*;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import lombok.AllArgsConstructor;
@@ -550,7 +550,7 @@ public class ItemsRequestHandler extends RequestHandler implements HttpHandler {
     public String getAllItems() {
         final List<Item> items = itemDb.getAllItems();
         augmentItemData(items);
-        BailiCalc.calcBailiScore(items);
+        List<BailiInfo> bailiInfos = BailiCalc.calcBailiScore(items);
         final GetAllItemsResponse response = GetAllItemsResponse.builder()
                 .items(items)
                 .build();
@@ -578,7 +578,23 @@ public class ItemsRequestHandler extends RequestHandler implements HttpHandler {
 //            }
 //        }
 
-        return toJson(response);
+//        return toJson(response);
+
+        String json = toJson(response);
+        JsonObject ret = JsonParser.parseString(json).getAsJsonObject();
+        JsonArray jsonArray = ret.getAsJsonArray("items");
+//        int index = 0;
+//        for (JsonElement jsonElement : jsonArray) {
+//            JsonObject jsonObject = jsonElement.getAsJsonObject();
+//            jsonObject.addProperty("baili", JsonParser.parseString(GSON.toJson(bailiInfos.get(index))).getAsString());
+//            index++;
+//        }
+        for (int i = 0; i < jsonArray.size(); i++) {
+            JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
+            // 直接用 GSON 把对象转成 JsonElement
+            jsonObject.add("baili", GSON.toJsonTree(bailiInfos.get(i)));
+        }
+        return ret.toString();
     }
 
     private void clearItemEquipped(final Item item) {
@@ -626,6 +642,8 @@ public class ItemsRequestHandler extends RequestHandler implements HttpHandler {
         final GetAllItemsResponse response = GetAllItemsResponse.builder()
                 .items(items)
                 .build();
+
+        BailiCalc.calcBailiScore(items);
 
         return toJson(response);
     }

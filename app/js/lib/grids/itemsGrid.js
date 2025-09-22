@@ -95,12 +95,27 @@ module.exports = {
                 {headerName: i18next.t('Def'), field: 'augmentedStats.Defense', cellRenderer: (params) => params.value == 0 ? "" : params.value},
                 {headerName: i18next.t('Eff'), field: 'augmentedStats.EffectivenessPercent', cellRenderer: (params) => params.value == 0 ? "" : params.value},
                 {headerName: i18next.t('Res'), field: 'augmentedStats.EffectResistancePercent', cellRenderer: (params) => params.value == 0 ? "" : params.value},
+                {
+                    headerName: '百里计分',
+                    valueGetter: (params) => {
+                        const value = params.data.baili?.gearScore;
+                        return value != null ? Number(value).toFixed(1) : "";
+                    },
+                    width: 120,
+                },
+                {
+                    headerName: '百里总分',
+                    valueGetter: (params) => {
+                        const value = params.data.baili?.score;
+                        return value !== undefined ? Number(value).toFixed(1) : "";
+                    },
+                    width: 220,
+                },
                 
                 {
                     headerName: '百里',
-                    valueGetter: (params) => calcBailiScore(params.data),
-                    width: 200
-                
+                    field: 'baili.details',
+                    width: 200,
                 },
 
                 {headerName: i18next.t('Score'), field: 'reforgedWss', width: 50, cellStyle: scoreColumnGradient},
@@ -154,7 +169,7 @@ module.exports = {
                 }, 2);
 
                 alert("Double clicked item (JSON):\n" + calcBailiScore(item) + "\n" + itemJsonStr + "\n\n(Editing items is not supported yet)");
-
+                console.log("Double clicked item", item);
             }
 
             // onRowSelected: onRowSelected,
