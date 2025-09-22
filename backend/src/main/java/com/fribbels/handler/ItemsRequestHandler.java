@@ -72,6 +72,12 @@ public class ItemsRequestHandler extends RequestHandler implements HttpHandler {
                 case "/items/getAllItems":
                     sendResponse(exchange, getAllItems());
                     return;
+                case "/items/level85BailiGt0":
+                    sendResponse(exchange, getLevel85ItemsWithBailiScoreGreaterThanZero());
+                    return;
+                case "/items/bailiScoreSummary":
+                    sendResponse(exchange, getAllItemsBailiScoreSummary());
+                    return;
                 case "/items/getItemById":
                     final IdRequest getItemByIdRequest = parseRequest(exchange, IdRequest.class);
                     sendResponse(exchange, getItemById(getItemByIdRequest));
@@ -595,6 +601,82 @@ public class ItemsRequestHandler extends RequestHandler implements HttpHandler {
             jsonObject.add("baili", GSON.toJsonTree(bailiInfos.get(i)));
         }
         return ret.toString();
+    }
+
+    /**
+     * 获取85级并且百里分数大于0的装备
+     */
+    public String getLevel85ItemsWithBailiScoreGreaterThanZero() {
+        final String allItemsStr = getAllItems();
+        JsonObject allItemsJson = JsonParser.parseString(allItemsStr).getAsJsonObject();
+        JsonArray allItemsArray = allItemsJson.getAsJsonArray("items");
+        JsonArray filteredItemsArray = new JsonArray();
+        for (JsonElement itemElement : allItemsArray) {
+            JsonObject itemObject = itemElement.getAsJsonObject();
+            int level = itemObject.has("level") && !itemObject.get("level").isJsonNull() ? itemObject.get("level").getAsInt() : 0;
+            if (level == 85) {
+                if (itemObject.has("baili") && !itemObject.get("baili").isJsonNull()) {
+                    JsonObject bailiObject = itemObject.getAsJsonObject("baili");
+                    double totalScore = bailiObject.has("totalScore") && !bailiObject.get("totalScore").isJsonNull() ? bailiObject.get("totalScore").getAsDouble() : 0.0;
+                    if (totalScore > 0) {
+                        filteredItemsArray.add(itemElement);
+                    }
+                }
+            }
+        }
+        JsonObject responseJson = new JsonObject();
+        responseJson.add("items", filteredItemsArray);
+        return responseJson.toString();
+    }
+
+    /**
+     * 获取所有装备的各类型百里分数总和
+     */
+    public String getAllItemsBailiScoreSummary() {
+        final String allItemsStr = getAllItems();
+        JsonObject allItemsJson = JsonParser.parseString(allItemsStr).getAsJsonObject();
+        JsonArray allItemsArray = allItemsJson.getAsJsonArray("items");
+        BailiInfo bailiInfo = new BailiInfo();
+        bailiInfo.setFirstSpeedScore(0);
+        bailiInfo.setSpeedScore(0);
+        bailiInfo.setDpsScore(0);
+        bailiInfo.setTankScore(0);
+        bailiInfo.setHitResistScore(0);
+        bailiInfo.setTankHalfScore(0);
+        for (JsonElement itemElement : allItemsArray) {
+            JsonObject itemObject = itemElement.getAsJsonObject();
+            if (itemObject.has("baili") && !itemObject.get("baili").isJsonNull()) {
+                BailiInfo itemBailiInfo = GSON.fromJson(itemObject.get("baili"), BailiInfo.class);
+                JsonObject bailiObject = itemObject.getAsJsonObject("baili");
+                bailiInfo.setFirstSpeedScore(bailiInfo.getFirstSpeedScore() +  itemBailiInfo.getFirstSpeedScore());
+                bailiInfo.setSpeedScore(bailiInfo.getSpeedScore() + itemBailiInfo.getSpeedScore());
+                switch (bailiInfo.getMaxType()) {
+                    case 1:
+                        bailiInfo.setDpsScore(bailiInfo.getDpsScore() + itemBailiInfo.getDpsScore());
+                        break;
+                    case 2:
+                        bailiInfo.setTankScore(bailiInfo.getTankScore() + itemBailiInfo.getTankScore());
+                        break;
+                    case 3:
+                        bailiInfo.setHitResistScore(bailiInfo.getHitResistScore() + itemBailiInfo.getHitResistScore());
+                        break;
+                    case 4:
+                        bailiInfo.setTankHalfScore(bailiInfo.getTankHalfScore() + itemBailiInfo.getTankHalfScore());
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        // 构造一个新的json，包含firstSpeedScore, speedScore, dpsScore, tankScore, hitResistScore, tankHalfScore 返回出去
+        JsonObject responseJson = new JsonObject();
+        responseJson.addProperty("firstSpeedScore", bailiInfo.getFirstSpeedScore());
+        responseJson.addProperty("speedScore", bailiInfo.getSpeedScore());
+        responseJson.addProperty("dpsScore", bailiInfo.getDpsScore());
+        responseJson.addProperty("tankScore", bailiInfo.getTankScore());
+        responseJson.addProperty("hitResistScore", bailiInfo.getHitResistScore());
+        responseJson.addProperty("tankHalfScore", bailiInfo.getTankHalfScore());
+        return responseJson.toString();
     }
 
     private void clearItemEquipped(final Item item) {

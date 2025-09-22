@@ -38,7 +38,6 @@ public class BailiCalc {
         if ((validMask & BailiRule.CRIT_DAMAGE) > 0) {
             score += item.getReforgedStats().getCritDamage() * 1.125;
         }
-
         if ((validMask & BailiRule.CRIT_RATE) > 0) {
             score += item.getReforgedStats().getCritRate() * 1.5;
 
@@ -75,178 +74,185 @@ public class BailiCalc {
 
     }
 
-    public static List<BailiInfo> calcBailiScore(final List<Item> items) {
-        List<BailiInfo> bailiInfos = new ArrayList<>();
-        for (final Item item : items) {
-            BailiInfo bailiInfo = new BailiInfo();
-            bailiInfos.add(bailiInfo);
-            try {
-                if (item == null) {
-                    continue;
+
+    public static BailiInfo calcBailiScore(final Item item) {
+        BailiInfo bailiInfo = new BailiInfo();
+        try {
+            if (item == null) {
+                return bailiInfo;
+            }
+            if (item.getReforgedStats() == null) {
+                return bailiInfo;
+            }
+            StringBuilder sb = new StringBuilder();
+            int score = 0;
+            // 一速
+            final int speed = item.getReforgedStats().getSpeed();
+            int firstSpeedScore = 0;
+            if (item.getGear() != Gear.BOOTS && speed >= 22) {
+                if (speed >= 27) {
+                    firstSpeedScore = 20 * speed - 2 * 245;
+                } else if (speed >= 25) {
+                    firstSpeedScore = 10 * speed - 225;
+                } else {
+                    firstSpeedScore = 5 * speed - 5 * 21;
                 }
-                if (item.getReforgedStats() == null) {
-                    continue;
+                if (firstSpeedScore > 0) {
+                    sb.append("一速").append(firstSpeedScore);
+                    score += firstSpeedScore;
+                    bailiInfo.setFirstSpeedScore(firstSpeedScore);
                 }
-                StringBuilder sb = new StringBuilder();
-                int score = 0;
-                // 一速
-                final int speed = item.getReforgedStats().getSpeed();
-                int firstSpeedScore = 0;
-                if (item.getGear() != Gear.BOOTS && speed >= 22) {
-                    if (speed >= 27) {
-                        firstSpeedScore = 20 * speed - 2 * 245;
-                    } else if (speed >= 25) {
-                        firstSpeedScore = 10 * speed - 225;
-                    } else {
-                        firstSpeedScore = 5 * speed - 5 * 21;
-                    }
-                    if (firstSpeedScore > 0) {
-                        sb.append("一速").append(firstSpeedScore);
-                        score += firstSpeedScore;
-                        bailiInfo.setFirstSpeedScore(firstSpeedScore);
-                    }
+            }
+            // 速度
+            for (final BailiRule rule : BailiRule.speedRules) {
+                final double speedScore = BailiRule.ruleCalc(item, rule);
+                if (speedScore > bailiInfo.getSpeedScore()) {
+                    // 四舍五入
+                    bailiInfo.setSpeedScore((int) Math.round(speedScore));
                 }
-                // 速度
-                for (final BailiRule rule : BailiRule.speedRules) {
-                    final double speedScore = BailiRule.ruleCalc(item, rule);
-                    if (speedScore > bailiInfo.getSpeedScore()) {
-                        // 四舍五入
-                        bailiInfo.setSpeedScore((int) Math.round(speedScore));
-                    }
+            }
+            if (bailiInfo.getSpeedScore() > 0) {
+                if (sb.length() > 0) {
+                    sb.append(" ");
                 }
-                if (bailiInfo.getSpeedScore() > 0) {
-                    if (sb.length() > 0) {
-                        sb.append(" ");
-                    }
-                    score += bailiInfo.getSpeedScore();
-                    sb.append("速度").append(bailiInfo.getSpeedScore());
+                score += bailiInfo.getSpeedScore();
+                sb.append("速度").append(bailiInfo.getSpeedScore());
+            }
+            final int scoreCache = score;
+            int maxScore = 0;
+            int maxType = 0;
+            // 输出
+            for (final BailiRule rule : BailiRule.dpsRules) {
+                final double dpsScore = BailiRule.ruleCalc(item, rule);
+                if (dpsScore > bailiInfo.getDpsScore()) {
+                    bailiInfo.setDpsScore((int) Math.round(dpsScore));
                 }
-                final int scoreCache = score;
-                int maxScore = 0;
-                int maxType = 0;
-                // 输出
-                for (final BailiRule rule : BailiRule.dpsRules) {
-                    final double dpsScore = BailiRule.ruleCalc(item, rule);
-                    if (dpsScore > bailiInfo.getDpsScore()) {
-                        bailiInfo.setDpsScore((int) Math.round(dpsScore));
-                    }
+            }
+            if (bailiInfo.getDpsScore() > 0) {
+                if (bailiInfo.getDpsScore() > maxScore) {
+                    maxScore = bailiInfo.getDpsScore();
+                    maxType = 1;
                 }
-                if (bailiInfo.getDpsScore() > 0) {
-                    if (bailiInfo.getDpsScore() > maxScore) {
-                        maxScore = bailiInfo.getDpsScore();
-                        maxType = 1;
-                    }
 //                    if (sb.length() > 0) {
 //                        sb.append(" ");
 //                    }
 //                    score += bailiInfo.getDpsScore();
 //                    sb.append("输出").append(bailiInfo.getDpsScore());
-                }
+            }
 
-                // 坦克
+            // 坦克
 //                if (score == scoreCache) {
-                    for (final BailiRule rule : BailiRule.tankRules) {
-                        final double tankScore = BailiRule.ruleCalc(item, rule);
-                        if (tankScore > bailiInfo.getTankScore()) {
-                            bailiInfo.setTankScore((int) Math.round(tankScore));
-                        }
-                    }
-                    if (bailiInfo.getTankScore() > 0) {
-                        if (bailiInfo.getTankScore() > maxScore) {
-                            maxScore = bailiInfo.getTankScore();
-                            maxType = 2;
-                        }
+            for (final BailiRule rule : BailiRule.tankRules) {
+                final double tankScore = BailiRule.ruleCalc(item, rule);
+                if (tankScore > bailiInfo.getTankScore()) {
+                    bailiInfo.setTankScore((int) Math.round(tankScore));
+                }
+            }
+            if (bailiInfo.getTankScore() > 0) {
+                if (bailiInfo.getTankScore() > maxScore) {
+                    maxScore = bailiInfo.getTankScore();
+                    maxType = 2;
+                }
 //                        if (sb.length() > 0) {
 //                            sb.append(" ");
 //                        }
 //                        score += bailiInfo.getTankScore();
 //                        sb.append("坦克").append(bailiInfo.getTankScore());
-                    }
+            }
 //                }
 
-                // 双效
+            // 双效
 //                if (score == scoreCache) {
-                    for (final BailiRule rule : BailiRule.hitResistRules) {
-                        final double hitResistScore = BailiRule.ruleCalc(item, rule);
-                        if (hitResistScore > bailiInfo.getHitResistScore()) {
-                            bailiInfo.setHitResistScore((int) Math.round(hitResistScore));
-                        }
-                    }
-                    if (bailiInfo.getHitResistScore() > 0) {
-                        if (bailiInfo.getHitResistScore() > maxScore) {
-                            maxScore = bailiInfo.getHitResistScore();
-                            maxType = 3;
-                        }
+            for (final BailiRule rule : BailiRule.hitResistRules) {
+                final double hitResistScore = BailiRule.ruleCalc(item, rule);
+                if (hitResistScore > bailiInfo.getHitResistScore()) {
+                    bailiInfo.setHitResistScore((int) Math.round(hitResistScore));
+                }
+            }
+            if (bailiInfo.getHitResistScore() > 0) {
+                if (bailiInfo.getHitResistScore() > maxScore) {
+                    maxScore = bailiInfo.getHitResistScore();
+                    maxType = 3;
+                }
 //                        if (sb.length() > 0) {
 //                            sb.append(" ");
 //                        }
 //                        score += bailiInfo.getHitResistScore();
 //                        sb.append("双效").append(bailiInfo.getHitResistScore());
-                    }
+            }
 //                }
 
-                // 半肉
+            // 半肉
 //                if (score == scoreCache) {
-                    for (final BailiRule rule : BailiRule.tankHalfRules) {
-                        final double tankHalfScore = BailiRule.ruleCalc(item, rule);
-                        if (tankHalfScore > bailiInfo.getTankHalfScore()) {
-                            bailiInfo.setTankHalfScore((int) Math.round(tankHalfScore));
-                        }
-                    }
-                    if (bailiInfo.getTankHalfScore() > 0) {
-                        if (bailiInfo.getTankHalfScore() > maxScore) {
-                            maxScore = bailiInfo.getTankHalfScore();
-                            maxType = 4;
-                        }
+            for (final BailiRule rule : BailiRule.tankHalfRules) {
+                final double tankHalfScore = BailiRule.ruleCalc(item, rule);
+                if (tankHalfScore > bailiInfo.getTankHalfScore()) {
+                    bailiInfo.setTankHalfScore((int) Math.round(tankHalfScore));
+                }
+            }
+            if (bailiInfo.getTankHalfScore() > 0) {
+                if (bailiInfo.getTankHalfScore() > maxScore) {
+                    maxScore = bailiInfo.getTankHalfScore();
+                    maxType = 4;
+                }
 //                        if (sb.length() > 0) {
 //                            sb.append(" ");
 //                        }
 //                        score += bailiInfo.getTankHalfScore();
 //                        sb.append("半肉").append(bailiInfo.getTankHalfScore());
-                    }
+            }
 //                }
 
-                if (maxType > 0) {
-                    score += maxScore;
-                    if (sb.length() > 0) {
-                        sb.append(" ");
-                    }
-                    switch (maxType) {
-                        case 1:
-                            sb.append("输出").append(maxScore);
-                            break;
-                        case 2:
-                            sb.append("坦克").append(maxScore);
-                            break;
-                        case 3:
-                            sb.append("双效").append(maxScore);
-                            break;
-                        case 4:
-                            sb.append("半肉").append(maxScore);
-                            break;
-                        default:
-                            break;
-                    }
+            if (maxType > 0) {
+                bailiInfo.setMaxType(maxType);
+                score += maxScore;
+                if (sb.length() > 0) {
+                    sb.append(" ");
                 }
-
-                // 未来可期
-                // 75+	2/3*（装等-73.5）
-                bailiInfo.setGearScore(calcGearScore(item));
-                if (score == 0 && bailiInfo.getGearScore() > 75) {
-                    final int futureScore = (int) Math.round(2.0 / 3 * (bailiInfo.getGearScore() - 73.5));
-                    score += futureScore;
-                    bailiInfo.setFutureScore(futureScore);
-                    if (sb.length() > 0) {
-                        sb.append(" ");
-                    }
-                    sb.append("未来可期").append(futureScore);
+                switch (maxType) {
+                    case 1:
+                        sb.append("输出").append(maxScore);
+                        break;
+                    case 2:
+                        sb.append("坦克").append(maxScore);
+                        break;
+                    case 3:
+                        sb.append("双效").append(maxScore);
+                        break;
+                    case 4:
+                        sb.append("半肉").append(maxScore);
+                        break;
+                    default:
+                        break;
                 }
-
-                bailiInfo.setScore(score);
-                bailiInfo.setDetails(sb.toString());
-            } catch (Exception e) {
-                e.printStackTrace();
             }
+
+            // 未来可期
+            // 75+	2/3*（装等-73.5）
+            bailiInfo.setGearScore(calcGearScore(item));
+            if (score == 0 && bailiInfo.getGearScore() > 75) {
+                final int futureScore = (int) Math.round(2.0 / 3 * (bailiInfo.getGearScore() - 73.5));
+                score += futureScore;
+                bailiInfo.setFutureScore(futureScore);
+                if (sb.length() > 0) {
+                    sb.append(" ");
+                }
+                sb.append("未来可期").append(futureScore);
+            }
+
+            bailiInfo.setScore(score);
+            bailiInfo.setDetails(sb.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return bailiInfo;
+    }
+
+    public static List<BailiInfo> calcBailiScore(final List<Item> items) {
+        List<BailiInfo> bailiInfos = new ArrayList<>();
+        for (final Item item : items) {
+            final BailiInfo bailiInfo = calcBailiScore(item);
+            bailiInfos.add(bailiInfo);
         }
         return bailiInfos;
     }

@@ -14,6 +14,7 @@ public class BailiInfo {
     private int speedScore = 0;
     private int dpsScore = 0;
     private int tankScore = 0;
+    private int maxType = 0;
     /**
      * 双效分数
      */
